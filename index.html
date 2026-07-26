@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Project Dashboard</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0; background: #f4f6f8; color: #1a1a2e; font-size: 14px;
+}
+.header {
+  background: #1e293b; color: #f8fafc;
+  padding: 16px 24px; display: flex; align-items: center; gap: 10px;
+}
+.header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+.controls {
+  padding: 14px 24px; background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.controls label { font-weight: 600; font-size: 13px; color: #374151; white-space: nowrap; }
+#projectSelect {
+  padding: 7px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+  font-size: 14px; background: #fff; min-width: 320px; max-width: 500px;
+  color: #1e293b; cursor: pointer;
+}
+#projectSelect:focus { outline: 2px solid #2563eb; outline-offset: 1px; }
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid #e2e8f0; border-top-color: #2563eb;
+  border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#projectBanner {
+  display: none; padding: 12px 24px;
+  background: #eff6ff; border-bottom: 1px solid #bfdbfe;
+}
+.banner-grid { display: flex; gap: 32px; flex-wrap: wrap; }
+.banner-item { font-size: 13px; }
+.banner-label { font-weight: 700; color: #1d4ed8; margin-right: 6px; }
+.banner-value { color: #1e3a8a; }
+#content { padding: 20px 24px; display: none; flex-direction: column; gap: 20px; }
+.section {
+  background: #fff; border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+.section-head {
+  padding: 12px 18px; background: #f8fafc;
+  border-bottom: 1px solid #e9eef5;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-icon { font-size: 15px; }
+.section-title { font-weight: 600; font-size: 14px; color: #1e293b; }
+.count-pill {
+  background: #e2e8f0; color: #475569;
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 20px;
+}
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 8px 14px; text-align: left;
+  background: #f1f5f9; color: #64748b;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.6px;
+  border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+}
+tbody td {
+  padding: 9px 14px; border-bottom: 1px solid #f1f5f9;
+  vertical-align: top; line-height: 1.45;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #f8fafc; }
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.b-blue   { background: #dbeafe; color: #1d4ed8; }
+.b-green  { background: #dcfce7; color: #15803d; }
+.b-yellow { background: #fef3c7; color: #92400e; }
+.b-red    { background: #fee2e2; color: #b91c1c; }
+.b-purple { background: #ede9fe; color: #6d28d9; }
+.b-gray   { background: #f1f5f9; color: #475569; }
+.b-orange { background: #ffedd5; color: #c2410c; }
+.b-teal   { background: #ccfbf1; color: #0f766e; }
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.trunc { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.empty-row { padding: 20px 18px; color: #94a3b8; font-style: italic; text-align: center; }
+.err-row   { padding: 20px 18px; color: #dc2626; text-align: center; }
+.sec-loading { padding: 20px 18px; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span style="font-size:20px">📁</span>
+  <h1>Project Dashboard</h1>
+</div>
+
+<div class="controls">
+  <label for="projectSelect">Select Project:</label>
+  <select id="projectSelect">
+    <option value="">— loading projects… —</option>
+  </select>
+  <div class="spinner" id="spinner"></div>
+</div>
+
+<div id="projectBanner">
+  <div class="banner-grid">
+    <div class="banner-item"><span class="banner-label">Organization:</span><span class="banner-value" id="bOrg">—</span></div>
+    <div class="banner-item"><span class="banner-label">Major Initiative:</span><span class="banner-value" id="bInit">—</span></div>
+    <div class="banner-item"><span class="banner-label">Status:</span><span class="banner-value" id="bStatus">—</span></div>
+    <div class="banner-item"><span class="banner-label">Priority:</span><span class="banner-value" id="bPriority">—</span></div>
+  </div>
+</div>
+
+<div id="content">
+  <div class="section">
+    <div class="section-head"><span class="section-icon">☑️</span><span class="section-title">Tasks</span><span class="count-pill" id="cTasks">0</span></div>
+    <div class="table-wrap" id="bTasks"><div class="sec-loading">Loading…</div></div>
+  </div>
+  <div class="section">
+    <div class="section-head"><span class="section-icon">🗒️</span><span class="section-title">Daily Notes</span><span class="count-pill" id="cDaily">0</span></div>
+    <div class="table-wrap" id="bDaily"><div class="sec-loading">Loading…</div></div>
+  </div>
+  <div class="section">
+    <div class="section-head"><span class="section-icon">💬</span><span class="section-title">Interactions</span><span class="count-pill" id="cInteractions">0</span></div>
+    <div class="table-wrap" id="bInteractions"><div class="sec-loading">Loading…</div></div>
+  </div>
+  <div class="section">
+    <div class="section-head"><span class="section-icon">📔</span><span class="section-title">Research &amp; References</span><span class="count-pill" id="cRR">0</span></div>
+    <div class="table-wrap" id="bRR"><div class="sec-loading">Loading…</div></div>
+  </div>
+  <div class="section">
+    <div class="section-head"><span class="section-icon">🧠</span><span class="section-title">Open Brain</span><span class="count-pill" id="cOB">0</span></div>
+    <div class="table-wrap" id="bOB"><div class="sec-loading">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+const QUERY_TOOL = 'mcp__535b3906-028b-4447-b89a-5f1512015e26__notion-query-data-sources';
+const FETCH_TOOL = 'mcp__535b3906-028b-4447-b89a-5f1512015e26__notion-fetch';
+
+const DB = {
+  projects:     'collection://330c55ee-b0e0-4832-9ffe-e5c9b8cb8a1d',
+  tasks:        'collection://b4a85429-e6b9-4c83-9a97-5342c08b526f',
+  dailyNotes:   'collection://3e7a2c6c-547d-4a1e-813f-f625efa07b99',
+  interactions: 'collection://c3048f61-a457-486f-8904-b92764a176e9',
+  rr:           'collection://cdc4f937-1b2b-4056-8a26-fe43adb3e15f',
+  openBrain:    'collection://2d847afa-34b0-4fe1-a6c2-6998b7e6cb39',
+};
+
+let projectRows = [];
+
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function parseArr(v) {
+  if (!v) return [];
+  if (Array.isArray(v)) return v;
+  try { return JSON.parse(v); } catch { return []; }
+}
+function fmtDate(v) { return v ? String(v).slice(0,10) : ''; }
+
+const SCOL = {
+  'Active':'green','Done':'green','Accepted':'green','Won':'green','Accepted / Complete':'green',
+  'In Progress':'yellow','Planning':'yellow','Revision':'yellow','Research':'yellow',
+  'New':'blue','To Do':'blue','Scheduled':'blue','Ready':'teal','Published':'blue',
+  'Blocked':'red','On Hold':'red','Lost':'red','Killed':'red',
+  'Complete':'gray','Archived':'gray','Draft':'purple',
+  'Invoice':'orange','Awaiting Payment':'orange','Submitted':'orange','FollowUp':'orange',
+};
+const PCOL = {
+  'PHMC':'purple','ONGOING':'teal','P1':'red','P2':'orange','P3':'yellow','P4':'gray','P9':'gray',
+  'p1':'red','p2':'purple','p3':'orange','p4':'yellow',
+};
+function bColor(v, map) { return map[v] || 'gray'; }
+function badge(v, cls) { return v ? '<span class="badge b-'+cls+'">'+esc(v)+'</span>' : ''; }
+function pageLink(url, title) { return '<a href="'+esc(url)+'" target="_blank">'+esc(title || '(untitled)')+'</a>'; }
+function errOrEmpty(data, label) {
+  if (data && data._err) return '<div class="err-row">⚠ Error loading '+esc(label)+': '+esc(data._err)+'</div>';
+  return '<div class="empty-row">No '+esc(label)+' linked to this project.</div>';
+}
+
+async function notionQuery(dbKey, sql, params) {
+  const collUrl = DB[dbKey];
+  const r = await window.cowork.callMcpTool(QUERY_TOOL, {
+    data: { mode: 'sql', data_source_urls: [collUrl], query: sql, params: params || [] }
+  });
+  if (r.isError) throw new Error(JSON.stringify(r.content));
+  let raw = r.structuredContent;
+  if (!raw && r.content && r.content[0]) raw = JSON.parse(r.content[0].text);
+  if (Array.isArray(raw)) return raw;
+  if (raw && Array.isArray(raw.results)) return raw.results;
+  if (raw && Array.isArray(raw.rows)) return raw.rows;
+  return [];
+}
+
+async function fetchTitle(url) {
+  if (!url) return null;
+  try {
+    const r = await window.cowork.callMcpTool(FETCH_TOOL, { id: url });
+    if (r.isError) return null;
+    let p = r.structuredContent;
+    if (!p && r.content && r.content[0]) p = JSON.parse(r.content[0].text);
+    return p && p.title ? p.title : null;
+  } catch { return null; }
+}
+
+async function init() {
+  const sel = document.getElementById('projectSelect');
+  try {
+    const rows = await notionQuery('projects',
+      'SELECT url, "Project", "Organization", "Major Initiatives Progress Tracking", "Status", "Priority", "Type" FROM "'+DB.projects+'" WHERE "Status" IS NOT NULL AND "Status" NOT IN (\'Archived\') ORDER BY "Project"',
+      []
+    );
+    projectRows = rows;
+    sel.innerHTML = '<option value="">— Select a project —</option>';
+    rows.forEach(function(row, i) {
+      var opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = row['Project'] || '(unnamed)';
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    sel.innerHTML = '<option value="">⚠ Error loading projects</option>';
+    console.error(e);
+  }
+}
+
+document.getElementById('projectSelect').addEventListener('change', async function() {
+  var idx = this.value;
+  var banner  = document.getElementById('projectBanner');
+  var content = document.getElementById('content');
+  if (idx === '') { banner.style.display='none'; content.style.display='none'; return; }
+
+  var row = projectRows[parseInt(idx)];
+  var projectUrl = row.url;
+  var likeParam  = '%' + projectUrl + '%';
+
+  document.getElementById('spinner').style.display = 'block';
+  banner.style.display  = 'none';
+  content.style.display = 'none';
+
+  ['cTasks','cDaily','cInteractions','cRR','cOB'].forEach(function(id){ document.getElementById(id).textContent='0'; });
+  ['bTasks','bDaily','bInteractions','bRR','bOB'].forEach(function(id){ document.getElementById(id).innerHTML='<div class="sec-loading">Loading…</div>'; });
+  content.style.display = 'flex';
+
+  try {
+    var orgUrls  = parseArr(row['Organization']);
+    var initUrls = parseArr(row['Major Initiatives Progress Tracking']);
+
+    var results = await Promise.all([
+      fetchTitle(orgUrls[0]),
+      fetchTitle(initUrls[0]),
+      notionQuery('tasks',
+        'SELECT "Task","Status","Priority","Type","date:Next Do Date:start" as next_do,"date:Due Date:start" as due_date,"Notes",url FROM "'+DB.tasks+'" WHERE "Project" LIKE ? ORDER BY "Priority", next_do',
+        [likeParam]).catch(function(e){ return {_err:e.message}; }),
+      notionQuery('dailyNotes',
+        'SELECT "Title","Type","Status","Short Note","Entered",url FROM "'+DB.dailyNotes+'" WHERE "TO PROJECT" LIKE ? ORDER BY "Entered" DESC',
+        [likeParam]).catch(function(e){ return {_err:e.message}; }),
+      notionQuery('interactions',
+        'SELECT "Title","Type","Channel","Direction","date:Date:start" as idate,"Summary","Status","Outcome",url FROM "'+DB.interactions+'" WHERE "Linked Project" LIKE ? ORDER BY idate DESC',
+        [likeParam]).catch(function(e){ return {_err:e.message}; }),
+      notionQuery('rr',
+        'SELECT "Title","Source Type","Summary","date:Date Captured:start" as captured,"Content URL","Topic Tags","HMC Notes:",url FROM "'+DB.rr+'" WHERE "Linked Project" LIKE ? OR "Linked Project 1" LIKE ? ORDER BY captured DESC',
+        [likeParam,likeParam]).catch(function(e){ return {_err:e.message}; }),
+      notionQuery('openBrain',
+        'SELECT "Title","Type","Category","Content","date:Captured:start" as captured,"Source","Topics",url FROM "'+DB.openBrain+'" WHERE "Linked Project" LIKE ? ORDER BY captured DESC',
+        [likeParam]).catch(function(e){ return {_err:e.message}; }),
+    ]);
+
+    document.getElementById('bOrg').textContent      = results[0]  || '—';
+    document.getElementById('bInit').textContent     = results[1]  || '—';
+    document.getElementById('bStatus').textContent   = row['Status']   || '—';
+    document.getElementById('bPriority').textContent = row['Priority'] || '—';
+    banner.style.display = 'block';
+
+    renderTasks(results[2]);
+    renderDaily(results[3]);
+    renderInteractions(results[4]);
+    renderRR(results[5]);
+    renderOB(results[6]);
+
+  } catch(e) { console.error(e); }
+  finally { document.getElementById('spinner').style.display = 'none'; }
+});
+
+function renderTasks(data) {
+  var el = document.getElementById('bTasks');
+  if (!Array.isArray(data)||!data.length){ el.innerHTML=errOrEmpty(data,'tasks'); document.getElementById('cTasks').textContent='0'; return; }
+  document.getElementById('cTasks').textContent = data.length;
+  el.innerHTML = '<table><thead><tr><th>Task</th><th>Status</th><th>Priority</th><th>Type</th><th>Next Do</th><th>Due</th><th>Notes</th></tr></thead><tbody>'
+    + data.map(function(r){ return '<tr><td>'+pageLink(r.url,r['Task'])+'</td><td>'+badge(r['Status'],bColor(r['Status'],SCOL))+'</td><td>'+badge(r['Priority'],bColor(r['Priority'],PCOL))+'</td><td>'+esc(r['Type']||'')+'</td><td style="white-space:nowrap">'+fmtDate(r['next_do'])+'</td><td style="white-space:nowrap">'+fmtDate(r['due_date'])+'</td><td><span class="trunc">'+esc(r['Notes']||'')+'</span></td></tr>'; }).join('')
+    + '</tbody></table>';
+}
+
+function renderDaily(data) {
+  var el = document.getElementById('bDaily');
+  if (!Array.isArray(data)||!data.length){ el.innerHTML=errOrEmpty(data,'daily notes'); document.getElementById('cDaily').textContent='0'; return; }
+  document.getElementById('cDaily').textContent = data.length;
+  el.innerHTML = '<table><thead><tr><th>Title</th><th>Type</th><th>Status</th><th>Note</th><th>Entered</th></tr></thead><tbody>'
+    + data.map(function(r){ return '<tr><td>'+pageLink(r.url,r['Title'])+'</td><td>'+esc(r['Type']||'')+'</td><td>'+badge(r['Status'],bColor(r['Status'],SCOL))+'</td><td><span class="trunc">'+esc(r['Short Note']||'')+'</span></td><td style="white-space:nowrap">'+fmtDate(r['Entered'])+'</td></tr>'; }).join('')
+    + '</tbody></table>';
+}
+
+function renderInteractions(data) {
+  var el = document.getElementById('bInteractions');
+  if (!Array.isArray(data)||!data.length){ el.innerHTML=errOrEmpty(data,'interactions'); document.getElementById('cInteractions').textContent='0'; return; }
+  document.getElementById('cInteractions').textContent = data.length;
+  el.innerHTML = '<table><thead><tr><th>Title</th><th>Channel</th><th>Direction</th><th>Date</th><th>Status</th><th>Summary / Outcome</th></tr></thead><tbody>'
+    + data.map(function(r){ return '<tr><td>'+pageLink(r.url,r['Title'])+'</td><td>'+esc(r['Channel']||'')+'</td><td>'+esc(r['Direction']||'')+'</td><td style="white-space:nowrap">'+fmtDate(r['idate'])+'</td><td>'+badge(r['Status'],bColor(r['Status'],SCOL))+'</td><td><span class="trunc">'+esc(r['Summary']||r['Outcome']||'')+'</span></td></tr>'; }).join('')
+    + '</tbody></table>';
+}
+
+function renderRR(data) {
+  var el = document.getElementById('bRR');
+  if (!Array.isArray(data)||!data.length){ el.innerHTML=errOrEmpty(data,'research & references'); document.getElementById('cRR').textContent='0'; return; }
+  document.getElementById('cRR').textContent = data.length;
+  el.innerHTML = '<table><thead><tr><th>Title</th><th>Source Type</th><th>Topic Tags</th><th>Captured</th><th>Summary / Notes</th></tr></thead><tbody>'
+    + data.map(function(r){
+        var tags = parseArr(r['Topic Tags']).map(function(t){ return badge(t,'blue'); }).join(' ');
+        var extLink = r['Content URL'] ? ' <a href="'+esc(r['Content URL'])+'" target="_blank" style="font-size:11px;color:#64748b">[src ↗]</a>' : '';
+        return '<tr><td>'+pageLink(r.url,r['Title'])+extLink+'</td><td>'+esc(r['Source Type']||'')+'</td><td>'+tags+'</td><td style="white-space:nowrap">'+fmtDate(r['captured'])+'</td><td><span class="trunc">'+esc(r['Summary']||r['HMC Notes:']||'')+'</span></td></tr>';
+      }).join('')
+    + '</tbody></table>';
+}
+
+function renderOB(data) {
+  var el = document.getElementById('bOB');
+  if (!Array.isArray(data)||!data.length){ el.innerHTML=errOrEmpty(data,'Open Brain entries'); document.getElementById('cOB').textContent='0'; return; }
+  document.getElementById('cOB').textContent = data.length;
+  el.innerHTML = '<table><thead><tr><th>Title</th><th>Type</th><th>Category</th><th>Source</th><th>Captured</th><th>Content</th></tr></thead><tbody>'
+    + data.map(function(r){
+        var topics = parseArr(r['Topics']).map(function(t){ return badge(t,'teal'); }).join(' ');
+        return '<tr><td>'+pageLink(r.url,r['Title'])+'</td><td>'+badge(r['Type'],'purple')+'</td><td>'+esc(r['Category']||'')+' '+topics+'</td><td style="font-size:11px">'+esc(r['Source']||'')+'</td><td style="white-space:nowrap">'+fmtDate(r['captured'])+'</td><td><span class="trunc">'+esc(r['Content']||'')+'</span></td></tr>';
+      }).join('')
+    + '</tbody></table>';
+}
+
+init();
+</script>
+</body>
+</html>
