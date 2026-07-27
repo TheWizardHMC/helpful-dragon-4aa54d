@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HMC Project Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f1117;
+    color: #e0e0e8;
+    min-height: 100vh;
+    padding: 24px 20px 60px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 20px;
+    letter-spacing: -0.02em;
+  }
+
+  .selector-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .toggle-group {
+    display: flex;
+    background: #1c1f2b;
+    border: 1px solid #2e3347;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .toggle-btn {
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #666;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .toggle-btn.active {
+    background: #5b6af0;
+    color: #fff;
+  }
+
+  select {
+    flex: 1;
+    max-width: 480px;
+    background: #1c1f2b;
+    color: #e0e0e8;
+    border: 1px solid #2e3347;
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  select:focus { border-color: #5b6af0; }
+
+  .task-search-wrap {
+    flex: 1;
+    max-width: 480px;
+    position: relative;
+    display: none;
+  }
+
+  .task-search-wrap.visible { display: block; }
+
+  .task-search-input {
+    width: 100%;
+    background: #1c1f2b;
+    color: #e0e0e8;
+    border: 1px solid #2e3347;
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 0.95rem;
+    outline: none;
+  }
+
+  .task-search-input:focus { border-color: #5b6af0; }
+
+  .task-results {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: #1c1f2b;
+    border: 1px solid #2e3347;
+    border-radius: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+  }
+
+  .task-results.visible { display: block; }
+
+  .task-result-item {
+    padding: 9px 14px;
+    font-size: 0.88rem;
+    cursor: pointer;
+    color: #c0c4e0;
+    border-bottom: 1px solid #1f2233;
+  }
+
+  .task-result-item:last-child { border-bottom: none; }
+  .task-result-item:hover { background: #21253a; }
+
+  .task-result-item .task-meta {
+    font-size: 0.75rem;
+    color: #555;
+    margin-top: 2px;
+  }
+
+  .task-result-none {
+    padding: 12px 14px;
+    font-size: 0.85rem;
+    color: #555;
+    font-style: italic;
+  }
+
+  .banner {
+    display: none;
+    background: #1c1f2b;
+    border: 1px solid #2e3347;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    display: none;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px 24px;
+  }
+
+  .banner.visible { display: grid; }
+
+  .banner-item { display: flex; flex-direction: column; gap: 3px; }
+
+  .banner-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555;
+  }
+
+  .banner-value {
+    font-size: 0.9rem;
+    color: #c8c8d8;
+    font-weight: 500;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+  }
+
+  .badge-status { background: #1e3a5f; color: #7ab3e0; }
+  .badge-priority { background: #3a1e1e; color: #e07a7a; }
+
+  .section {
+    margin-bottom: 28px;
+    background: #1c1f2b;
+    border: 1px solid #2e3347;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid #2e3347;
+  }
+
+  .section-header:hover { background: #21253a; }
+
+  .section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #c0c4e0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-count {
+    background: #2e3347;
+    color: #888;
+    border-radius: 20px;
+    padding: 1px 9px;
+    font-size: 0.75rem;
+  }
+
+  .section-chevron {
+    color: #555;
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+  }
+
+  .section.collapsed .section-chevron { transform: rotate(-90deg); }
+  .section.collapsed .section-body { display: none; }
+
+  .section-body { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+  }
+
+  thead th {
+    background: #161820;
+    color: #666;
+    font-weight: 500;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 9px 14px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid #2e3347;
+  }
+
+  tbody tr { border-bottom: 1px solid #1f2233; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #21253a; }
+
+  td {
+    padding: 9px 14px;
+    color: #b8bcd4;
+    vertical-align: top;
+    max-width: 320px;
+  }
+
+  td.title-cell { max-width: 280px; }
+
+  a {
+    color: #7c8cf8;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  a:hover { text-decoration: underline; color: #a0aaff; }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    background: #252840;
+    color: #9098c0;
+  }
+
+  .msg {
+    padding: 20px 18px;
+    color: #555;
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid #333;
+    border-top-color: #5b6af0;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg { color: #e07a7a; padding: 20px 18px; font-size: 0.85rem; }
+
+  .placeholder { padding: 48px 20px; text-align: center; color: #333; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<h1>📁 HMC Project Dashboard</h1>
+
+<div class="selector-row">
+  <div class="toggle-group">
+    <button class="toggle-btn active" id="mode-project" onclick="setMode('project')">Project</button>
+    <button class="toggle-btn" id="mode-task" onclick="setMode('task')">Task</button>
+  </div>
+  <select id="project-select">
+    <option value="">— select a project —</option>
+  </select>
+  <div class="task-search-wrap" id="task-search-wrap">
+    <input type="text" class="task-search-input" id="task-search-input"
+           placeholder="Type a task name…" autocomplete="off">
+    <div class="task-results" id="task-results"></div>
+  </div>
+</div>
+
+<div class="banner" id="banner">
+  <div class="banner-item" id="b-via-task-item" style="display:none">
+    <span class="banner-label">Via Task</span>
+    <span class="banner-value" id="b-via-task">—</span>
+  </div>
+  <div class="banner-item">
+    <span class="banner-label">Organization</span>
+    <span class="banner-value" id="b-org">—</span>
+  </div>
+  <div class="banner-item">
+    <span class="banner-label">Major Initiative</span>
+    <span class="banner-value" id="b-init">—</span>
+  </div>
+  <div class="banner-item">
+    <span class="banner-label">Status</span>
+    <span class="banner-value" id="b-status">—</span>
+  </div>
+  <div class="banner-item">
+    <span class="banner-label">Priority</span>
+    <span class="banner-value" id="b-priority">—</span>
+  </div>
+</div>
+
+<div id="sections">
+  <div class="placeholder">Select a project above to load its data.</div>
+</div>
+
+<script>
+// ── Database IDs ──────────────────────────────────────────────────────────────
+const DB = {
+  projects:     '1816a3e0-6307-4233-ba04-2981d2c3d08c',
+  tasks:        '31ee6b90-5b01-4c7b-97fb-f9039dfb0d5c',
+  dailyNotes:   'a55c19c4-f37c-4604-97f1-df2c53c14500',
+  interactions: 'a77d013a-f1e5-4a8c-9576-168be85bb2d6',
+  rr:           '810ad704-0a87-426c-b123-1597ef75a14b',
+  openBrain:    'a9b6e245-f77f-4946-8f50-b8ce13e96684',
+};
+
+// Relation property name used in each child database to link back to Projects
+const PROJECT_REL = {
+  tasks:        'Project',
+  dailyNotes:   'TO PROJECT',
+  interactions: 'Linked Project',
+  rr:           'Linked Project',
+  openBrain:    'Linked Project',
+};
+
+// ── Notion proxy ──────────────────────────────────────────────────────────────
+async function notionProxy(endpoint, extras) {
+  const res = await fetch('/api/notion', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endpoint, ...extras }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+  return json;
+}
+
+async function queryAll(database_id, filter, sorts) {
+  const results = [];
+  let cursor;
+  do {
+    const query_body = { page_size: 100 };
+    if (filter) query_body.filter = filter;
+    if (sorts)  query_body.sorts  = sorts;
+    if (cursor) query_body.start_cursor = cursor;
+    const data = await notionProxy('query', { database_id, query_body });
+    results.push(...(data.results || []));
+    cursor = data.has_more ? data.next_cursor : null;
+  } while (cursor);
+  return results;
+}
+
+async function fetchPage(page_id) {
+  return notionProxy('page', { page_id });
+}
+
+// ── Property helpers ──────────────────────────────────────────────────────────
+function prop(page, name) {
+  const p = page.properties?.[name];
+  if (!p) return null;
+  switch (p.type) {
+    case 'title':        return p.title.map(t => t.plain_text).join('').trim() || null;
+    case 'rich_text':    return p.rich_text.map(t => t.plain_text).join('').trim() || null;
+    case 'select':       return p.select?.name ?? null;
+    case 'status':       return p.status?.name ?? null;
+    case 'multi_select': return p.multi_select.map(s => s.name).join(', ') || null;
+    case 'date':         return p.date?.start ?? null;
+    case 'checkbox':     return p.checkbox ? '✓' : null;
+    case 'number':       return p.number != null ? String(p.number) : null;
+    case 'url':          return p.url ?? null;
+    case 'relation':     return p.relation.map(r => r.id);
+    default:             return null;
+  }
+}
+
+function pageTitle(page) {
+  const tp = Object.values(page.properties || {}).find(p => p.type === 'title');
+  return tp ? tp.title.map(t => t.plain_text).join('').trim() || 'Untitled' : 'Untitled';
+}
+
+function notionUrl(id) {
+  return `https://www.notion.so/${id.replace(/-/g, '')}`;
+}
+
+// Resolve first relation ID to a page title (returns '' on failure)
+async function resolveRelTitle(page, propName) {
+  const ids = prop(page, propName);
+  if (!Array.isArray(ids) || ids.length === 0) return '—';
+  try {
+    const p = await fetchPage(ids[0]);
+    return pageTitle(p);
+  } catch { return '—'; }
+}
+
+// ── Initialise project dropdown ───────────────────────────────────────────────
+async function loadProjects() {
+  const sel = document.getElementById('project-select');
+  try {
+    const pages = await queryAll(DB.projects, null, [{ property: 'Project', direction: 'ascending' }]);
+    const active = pages.filter(p => !p.archived);
+    if (active.length === 0) {
+      sel.innerHTML = '<option value="">No projects found</option>';
+      return;
+    }
+    active.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = pageTitle(p);
+      sel.appendChild(opt);
+    });
+  } catch (err) {
+    sel.innerHTML = `<option value="">Error loading projects: ${err.message}</option>`;
+  }
+}
+
+// ── Section rendering helpers ─────────────────────────────────────────────────
+function makeSection(icon, title) {
+  const sec = document.createElement('div');
+  sec.className = 'section';
+  sec.innerHTML = `
+    <div class="section-header" onclick="this.parentElement.classList.toggle('collapsed')">
+      <span class="section-title">${icon} ${title} <span class="section-count">…</span></span>
+      <span class="section-chevron">▾</span>
+    </div>
+    <div class="section-body"><div class="msg"><span class="spinner"></span>Loading…</div></div>`;
+  return sec;
+}
+
+function setCount(sec, n) {
+  sec.querySelector('.section-count').textContent = n;
+}
+
+function setBody(sec, html) {
+  sec.querySelector('.section-body').innerHTML = html;
+}
+
+function emptyMsg(sec, label) {
+  setBody(sec, `<div class="msg">No ${label} linked to this project.</div>`);
+}
+
+function errorMsg(sec, err) {
+  setBody(sec, `<div class="error-msg">⚠ ${err}</div>`);
+}
+
+function cell(val) {
+  if (!val) return '<td>—</td>';
+  return `<td>${val}</td>`;
+}
+
+function titleCell(text, id) {
+  return `<td class="title-cell"><a href="${notionUrl(id)}" target="_blank">${esc(text)}</a></td>`;
+}
+
+function pillCell(val) {
+  if (!val) return '<td>—</td>';
+  return `<td><span class="pill">${esc(val)}</span></td>`;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Tasks ─────────────────────────────────────────────────────────────────────
+async function loadTasks(sec, projectId) {
+  try {
+    const pages = await queryAll(DB.tasks, {
+      property: PROJECT_REL.tasks,
+      relation: { contains: projectId },
+    }, [
+      { property: 'Priority', direction: 'ascending' },
+      { property: 'Next Do Date', direction: 'ascending' },
+    ]);
+    setCount(sec, pages.length);
+    if (!pages.length) { emptyMsg(sec, 'tasks'); return; }
+
+    let html = `<table><thead><tr>
+      <th>Task</th><th>Status</th><th>Priority</th><th>Type</th>
+      <th>Next Do Date</th><th>Due Date</th>
+    </tr></thead><tbody>`;
+    for (const p of pages) {
+      html += `<tr>
+        ${titleCell(pageTitle(p), p.id)}
+        ${pillCell(prop(p, 'Status'))}
+        ${pillCell(prop(p, 'Priority'))}
+        ${cell(prop(p, 'Type'))}
+        ${cell(prop(p, 'Next Do Date'))}
+        ${cell(prop(p, 'Due Date'))}
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    setBody(sec, html);
+  } catch (err) { errorMsg(sec, err.message); }
+}
+
+// ── Daily Notes ───────────────────────────────────────────────────────────────
+async function loadDailyNotes(sec, projectId) {
+  try {
+    const pages = await queryAll(DB.dailyNotes, {
+      property: PROJECT_REL.dailyNotes,
+      relation: { contains: projectId },
+    }, [{ timestamp: 'created_time', direction: 'descending' }]);
+    setCount(sec, pages.length);
+    if (!pages.length) { emptyMsg(sec, 'daily notes'); return; }
+
+    let html = `<table><thead><tr><th>Title</th><th>Type</th><th>Entered</th></tr></thead><tbody>`;
+    for (const p of pages) {
+      html += `<tr>
+        ${titleCell(pageTitle(p), p.id)}
+        ${pillCell(prop(p, 'Type'))}
+        ${cell(prop(p, 'Entered'))}
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    setBody(sec, html);
+  } catch (err) { errorMsg(sec, err.message); }
+}
+
+// ── Interactions ──────────────────────────────────────────────────────────────
+async function loadInteractions(sec, projectId) {
+  try {
+    const pages = await queryAll(DB.interactions, {
+      property: PROJECT_REL.interactions,
+      relation: { contains: projectId },
+    }, [{ property: 'Date', direction: 'descending' }]);
+    setCount(sec, pages.length);
+    if (!pages.length) { emptyMsg(sec, 'interactions'); return; }
+
+    let html = `<table><thead><tr><th>Interaction</th><th>Date</th><th>Type</th></tr></thead><tbody>`;
+    for (const p of pages) {
+      html += `<tr>
+        ${titleCell(pageTitle(p), p.id)}
+        ${cell(prop(p, 'Date'))}
+        ${pillCell(prop(p, 'Type') || prop(p, 'Interaction Type'))}
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    setBody(sec, html);
+  } catch (err) { errorMsg(sec, err.message); }
+}
+
+// ── Research & References ─────────────────────────────────────────────────────
+async function loadRR(sec, projectId) {
+  // Try primary relation name; fall back to alternate
+  async function tryQuery(relProp) {
+    return queryAll(DB.rr, {
+      property: relProp,
+      relation: { contains: projectId },
+    });
+  }
+
+  try {
+    let pages = [];
+    try { pages = await tryQuery('Linked Project'); } catch {}
+    if (!pages.length) {
+      try { pages = await tryQuery('Linked Project 1'); } catch {}
+    }
+
+    setCount(sec, pages.length);
+    if (!pages.length) { emptyMsg(sec, 'research & references'); return; }
+
+    let html = `<table><thead><tr><th>Title</th><th>Type</th><th>URL</th></tr></thead><tbody>`;
+    for (const p of pages) {
+      const url = prop(p, 'URL') || prop(p, 'Link');
+      const urlCell = url
+        ? `<td><a href="${esc(url)}" target="_blank">↗ link</a></td>`
+        : '<td>—</td>';
+      html += `<tr>
+        ${titleCell(pageTitle(p), p.id)}
+        ${pillCell(prop(p, 'Type') || prop(p, 'Category'))}
+        ${urlCell}
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    setBody(sec, html);
+  } catch (err) { errorMsg(sec, err.message); }
+}
+
+// ── Open Brain ────────────────────────────────────────────────────────────────
+async function loadOpenBrain(sec, projectId) {
+  try {
+    const pages = await queryAll(DB.openBrain, {
+      property: PROJECT_REL.openBrain,
+      relation: { contains: projectId },
+    }, [{ property: 'Captured', direction: 'descending' }]);
+    setCount(sec, pages.length);
+    if (!pages.length) { emptyMsg(sec, 'Open Brain entries'); return; }
+
+    let html = `<table><thead><tr><th>Entry</th><th>Date</th><th>Type</th></tr></thead><tbody>`;
+    for (const p of pages) {
+      html += `<tr>
+        ${titleCell(pageTitle(p), p.id)}
+        ${cell(prop(p, 'Captured'))}
+        ${pillCell(prop(p, 'Type') || prop(p, 'Category'))}
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    setBody(sec, html);
+  } catch (err) { errorMsg(sec, err.message); }
+}
+
+// ── Project select handler ────────────────────────────────────────────────────
+async function onProjectChange(projectId) {
+  const banner = document.getElementById('banner');
+  const sections = document.getElementById('sections');
+
+  if (!projectId) {
+    banner.classList.remove('visible');
+    sections.innerHTML = '<div class="placeholder">Select a project above to load its data.</div>';
+    return;
+  }
+
+  // Show loading state
+  banner.classList.remove('visible');
+  sections.innerHTML = '';
+
+  const taskSec   = makeSection('✅', 'Tasks');
+  const notesSec  = makeSection('📝', 'Daily Notes');
+  const intSec    = makeSection('🤝', 'Interactions');
+  const rrSec     = makeSection('🔬', 'Research & References');
+  const brainSec  = makeSection('🧠', 'Open Brain');
+
+  sections.append(taskSec, notesSec, intSec, rrSec, brainSec);
+
+  // Fetch project page + all child databases in parallel
+  const projectPage = await fetchPage(projectId).catch(() => null);
+
+  if (projectPage) {
+    // Banner: resolve org and initiative titles in parallel
+    const [orgTitle, initTitle] = await Promise.all([
+      resolveRelTitle(projectPage, 'Organization'),
+      resolveRelTitle(projectPage, 'Initiative'),
+    ]);
+
+    document.getElementById('b-org').textContent     = orgTitle;
+    document.getElementById('b-init').textContent    = initTitle;
+    document.getElementById('b-status').innerHTML    = formatBadge(prop(projectPage, 'Status'), 'badge-status');
+    document.getElementById('b-priority').innerHTML  = formatBadge(prop(projectPage, 'Priority'), 'badge-priority');
+    banner.classList.add('visible');
+  }
+
+  // Load all 5 databases in parallel
+  await Promise.all([
+    loadTasks(taskSec, projectId),
+    loadDailyNotes(notesSec, projectId),
+    loadInteractions(intSec, projectId),
+    loadRR(rrSec, projectId),
+    loadOpenBrain(brainSec, projectId),
+  ]);
+}
+
+function formatBadge(val, cls) {
+  if (!val) return '—';
+  return `<span class="badge ${cls}">${esc(val)}</span>`;
+}
+
+// ── Mode toggle ───────────────────────────────────────────────────────────────
+let currentMode = 'project';
+let allTasks = [];       // cached after first task-mode load
+let tasksLoading = false;
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('mode-project').classList.toggle('active', mode === 'project');
+  document.getElementById('mode-task').classList.toggle('active', mode === 'task');
+
+  const projectSel = document.getElementById('project-select');
+  const taskWrap   = document.getElementById('task-search-wrap');
+
+  if (mode === 'project') {
+    projectSel.style.display = '';
+    taskWrap.classList.remove('visible');
+    document.getElementById('task-results').classList.remove('visible');
+  } else {
+    projectSel.style.display = 'none';
+    taskWrap.classList.add('visible');
+    document.getElementById('task-search-input').focus();
+    if (allTasks.length === 0 && !tasksLoading) prefetchTasks();
+  }
+
+  // Clear current dashboard when switching modes
+  document.getElementById('banner').classList.remove('visible');
+  document.getElementById('sections').innerHTML =
+    '<div class="placeholder">Select a project above to load its data.</div>';
+  document.getElementById('b-via-task-item').style.display = 'none';
+}
+
+async function prefetchTasks() {
+  tasksLoading = true;
+  const input = document.getElementById('task-search-input');
+  input.placeholder = 'Loading tasks…';
+  try {
+    allTasks = await queryAll(DB.tasks, null, [{ timestamp: 'created_time', direction: 'ascending' }]);
+  } catch (e) {
+    allTasks = [];
+  }
+  tasksLoading = false;
+  input.placeholder = 'Type a task name…';
+  // If they already typed something, show results
+  if (input.value.trim()) filterTasks(input.value);
+}
+
+function filterTasks(query) {
+  const resultsEl = document.getElementById('task-results');
+  if (!query.trim()) { resultsEl.classList.remove('visible'); return; }
+
+  const q = query.toLowerCase();
+  const matches = allTasks.filter(t => pageTitle(t).toLowerCase().includes(q)).slice(0, 20);
+
+  if (matches.length === 0) {
+    resultsEl.innerHTML = '<div class="task-result-none">No matching tasks</div>';
+  } else {
+    resultsEl.innerHTML = matches.map(t => {
+      const status = prop(t, 'Status') || '';
+      const priority = prop(t, 'Priority') || '';
+      const meta = [status, priority].filter(Boolean).join(' · ');
+      return `<div class="task-result-item" onclick="selectTask('${t.id}', ${JSON.stringify(esc(pageTitle(t)))})">
+        ${esc(pageTitle(t))}
+        ${meta ? `<div class="task-meta">${esc(meta)}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+  resultsEl.classList.add('visible');
+}
+
+async function selectTask(taskId, taskName) {
+  // Hide results, update input
+  document.getElementById('task-results').classList.remove('visible');
+  document.getElementById('task-search-input').value = taskName;
+
+  // Find the task page to get its Project relation
+  const taskPage = allTasks.find(t => t.id === taskId);
+  if (!taskPage) return;
+
+  const projectIds = prop(taskPage, 'Project');
+  if (!Array.isArray(projectIds) || projectIds.length === 0) {
+    document.getElementById('sections').innerHTML =
+      '<div class="placeholder" style="color:#e07a7a">This task has no linked project.</div>';
+    return;
+  }
+
+  // Show "via task" in banner
+  document.getElementById('b-via-task').textContent = taskName;
+  document.getElementById('b-via-task-item').style.display = '';
+
+  // Load the project dashboard
+  await onProjectChange(projectIds[0]);
+}
+
+// Close task results when clicking outside
+document.addEventListener('click', e => {
+  if (!e.target.closest('#task-search-wrap')) {
+    document.getElementById('task-results')?.classList.remove('visible');
+  }
+});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+document.getElementById('project-select').addEventListener('change', e => {
+  document.getElementById('b-via-task-item').style.display = 'none';
+  onProjectChange(e.target.value);
+});
+
+document.getElementById('task-search-input').addEventListener('input', e => {
+  filterTasks(e.target.value);
+});
+
+document.getElementById('task-search-input').addEventListener('focus', e => {
+  if (e.target.value.trim()) filterTasks(e.target.value);
+});
+
+loadProjects();
+</script>
+</body>
+</html>
