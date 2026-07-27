@@ -505,13 +505,14 @@ function esc(s) {
 // ── Tasks ─────────────────────────────────────────────────────────────────────
 async function loadTasks(sec, projectId) {
   try {
-    const pages = await queryAll(DB.tasks, {
+    const raw = await queryAll(DB.tasks, {
       property: PROJECT_REL.tasks,
       relation: { contains: projectId },
     }, [
       { property: 'Priority', direction: 'ascending' },
       { property: 'Next Do Date', direction: 'ascending' },
     ]);
+    const pages = raw.filter(p => prop(p, 'Status') !== 'Done');
     setCount(sec, pages.length);
     if (!pages.length) { emptyMsg(sec, 'tasks'); return; }
 
@@ -746,7 +747,9 @@ function filterTasks(query) {
   if (!query.trim()) { resultsEl.classList.remove('visible'); return; }
 
   const q = query.toLowerCase();
-  const matches = allTasks.filter(t => pageTitle(t).toLowerCase().includes(q)).slice(0, 20);
+  const matches = allTasks
+    .filter(t => prop(t, 'Status') !== 'Done' && pageTitle(t).toLowerCase().includes(q))
+    .slice(0, 20);
 
   if (matches.length === 0) {
     resultsEl.innerHTML = '<div class="task-result-none">No matching tasks</div>';
@@ -755,7 +758,7 @@ function filterTasks(query) {
       const status = prop(t, 'Status') || '';
       const priority = prop(t, 'Priority') || '';
       const meta = [status, priority].filter(Boolean).join(' · ');
-      return `<div class="task-result-item" onclick="selectTask('${t.id}', ${JSON.stringify(esc(pageTitle(t)))})">
+      return `<div class="task-result-item" data-task-id="${t.id}">
         ${esc(pageTitle(t))}
         ${meta ? `<div class="task-meta">${esc(meta)}</div>` : ''}
       </div>`;
@@ -764,14 +767,10 @@ function filterTasks(query) {
   resultsEl.classList.add('visible');
 }
 
-async function selectTask(taskId, taskName) {
-  // Hide results, update input
+async function selectTask(taskPage) {
+  const taskName = pageTitle(taskPage);
   document.getElementById('task-results').classList.remove('visible');
   document.getElementById('task-search-input').value = taskName;
-
-  // Find the task page to get its Project relation
-  const taskPage = allTasks.find(t => t.id === taskId);
-  if (!taskPage) return;
 
   const projectIds = prop(taskPage, 'Project');
   if (!Array.isArray(projectIds) || projectIds.length === 0) {
@@ -780,16 +779,21 @@ async function selectTask(taskId, taskName) {
     return;
   }
 
-  // Show "via task" in banner
   document.getElementById('b-via-task').textContent = taskName;
   document.getElementById('b-via-task-item').style.display = '';
 
-  // Load the project dashboard
   await onProjectChange(projectIds[0]);
 }
 
-// Close task results when clicking outside
+// Event delegation for task result clicks + close-on-outside-click
 document.addEventListener('click', e => {
+  const item = e.target.closest('.task-result-item');
+  if (item) {
+    const taskId = item.dataset.taskId;
+    const taskPage = allTasks.find(t => t.id === taskId);
+    if (taskPage) selectTask(taskPage);
+    return;
+  }
   if (!e.target.closest('#task-search-wrap')) {
     document.getElementById('task-results')?.classList.remove('visible');
   }
