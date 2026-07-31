@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HMC Project Dashboard</title>
+<link rel="icon" type="image/png" href="favicon.png">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -301,7 +302,7 @@
 </head>
 <body>
 
-<h1>📁 HMC Project Dashboard</h1>
+<h1><img src="favicon.png" style="height:1.4em;vertical-align:middle;margin-right:10px;border-radius:4px;"> HMC Project Dashboard</h1>
 
 <div class="selector-row">
   <div class="toggle-group">
@@ -442,7 +443,7 @@ async function loadProjects() {
       { property: 'Priority', direction: 'ascending' },
       { property: 'Sequence', direction: 'ascending' },
     ]);
-    const active = pages.filter(p => !p.archived);
+    const active = pages.filter(p => !p.archived && prop(p, 'Status') !== 'Complete');
     if (active.length === 0) {
       sel.innerHTML = '<option value="">No projects found</option>';
       return;
