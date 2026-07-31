@@ -8,6 +8,8 @@ Write-Host "`n→ Copying latest files from Claude outputs..." -ForegroundColor 
 Copy-Item "$source\index.html"               "$repo\index.html" -Force
 Copy-Item "$source\netlify.toml"             "$repo\netlify.toml" -Force
 Copy-Item "$source\netlify\functions\notion.js" "$repo\netlify\functions\notion.js" -Force
+Copy-Item "$source\favicon.png"              "$repo\favicon.png" -Force
+Copy-Item "$source\hmc-logo.jpg"             "$repo\hmc-logo.jpg" -Force
 
 Set-Location $repo
 
