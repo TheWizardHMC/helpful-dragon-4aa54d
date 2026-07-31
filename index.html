@@ -438,16 +438,22 @@ async function resolveRelTitle(page, propName) {
 async function loadProjects() {
   const sel = document.getElementById('project-select');
   try {
-    const pages = await queryAll(DB.projects, null, [{ property: 'Project', direction: 'ascending' }]);
+    const pages = await queryAll(DB.projects, null, [
+      { property: 'Priority', direction: 'ascending' },
+      { property: 'Sequence', direction: 'ascending' },
+    ]);
     const active = pages.filter(p => !p.archived);
     if (active.length === 0) {
       sel.innerHTML = '<option value="">No projects found</option>';
       return;
     }
     active.forEach(p => {
+      const priority = prop(p, 'Priority') || '';
+      const sequence = prop(p, 'Sequence') || '';
+      const prefix = [priority, sequence].filter(Boolean).join('-');
       const opt = document.createElement('option');
       opt.value = p.id;
-      opt.textContent = pageTitle(p);
+      opt.textContent = prefix ? `[${prefix}] ${pageTitle(p)}` : pageTitle(p);
       sel.appendChild(opt);
     });
   } catch (err) {
